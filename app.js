@@ -7,12 +7,19 @@
   const modal = $('#modal');
   const toast = $('#toast');
   const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+  const COLOR_SKINS = [
+    { id: 'green', name: '초록', primary: '#17665b' },
+    { id: 'blue', name: '하늘', primary: '#4f739f' },
+    { id: 'purple', name: '라벤더', primary: '#78649a' },
+    { id: 'rose', name: '분홍', primary: '#ad6478' },
+    { id: 'amber', name: '살구', primary: '#a87835' }
+  ];
   const STORE_KEY = 'routine-state-v1';
   const today = () => dateKey(new Date());
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const freshState = () => ({
     version: 1, routines: [], entries: [], templates: [], onboardingDone: false,
-    settings: { summaryEnabled: false, summaryTime: '07:00', lastExternalBackup: null, lastNotifiedDate: null }
+    settings: { colorSkin: 'green', summaryEnabled: false, summaryTime: '07:00', lastExternalBackup: null, lastNotifiedDate: null }
   });
   let state = freshState();
   let currentView = 'today';
@@ -84,6 +91,12 @@
         };
       };
     });
+  }
+  function applySkin() {
+    const skin = COLOR_SKINS.find(item => item.id === state.settings?.colorSkin) || COLOR_SKINS[0];
+    document.documentElement.dataset.skin = skin.id;
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = skin.primary;
   }
   function backupState() {
     try { return JSON.parse(localStorage.getItem('routine-state-backups-v1') || '[]')[0]?.data || null; }
@@ -270,7 +283,9 @@
   function renderSettings() {
     const permission = 'Notification' in window ? Notification.permission : 'unsupported';
     const reminderText = permission === 'granted' ? '알림 권한이 허용되어 있어요.' : permission === 'denied' ? '브라우저 설정에서 알림 권한을 다시 허용해 주세요.' : permission === 'unsupported' ? '이 브라우저에서는 알림을 지원하지 않아요.' : '알림을 켜면 권한을 요청합니다.';
+    const selectedSkin = state.settings.colorSkin || 'green';
     main.innerHTML = `<div class="page-heading"><div><p class="eyebrow">내 방식대로 사용해요</p><h1>설정</h1></div></div>
+      <section class="card"><h2>색상 스킨</h2><p class="muted">파스텔 색상 중 원하는 화면 색을 선택하세요.</p><div class="skin-picker" role="group" aria-label="색상 스킨">${COLOR_SKINS.map(skin => `<button class="skin-choice ${selectedSkin === skin.id ? 'selected' : ''}" data-action="choose-skin" data-skin="${skin.id}" type="button" aria-pressed="${selectedSkin === skin.id}"><span class="skin-swatch" style="--swatch:${skin.primary}"></span><span>${skin.name}</span></button>`).join('')}</div></section>
       <section class="card"><h2>매일 요약 알림</h2><div class="setting-row"><div><strong>하루 한 번 알림</strong><p>${esc(reminderText)} 앱이 닫혀 있으면 정해진 시각 알림을 보장할 수 없어요.</p></div><input type="checkbox" id="summaryEnabled" ${state.settings.summaryEnabled ? 'checked' : ''} aria-label="매일 요약 알림 사용"></div><div class="setting-row"><div><strong>알림 시각</strong><p>오늘 예정된 루틴과 할 일을 함께 안내해요.</p></div><input type="time" id="summaryTime" value="${esc(state.settings.summaryTime || '07:00')}" aria-label="알림 시각"></div><div class="inline-note">iPhone·iPad에서는 홈 화면에 설치한 웹앱과 브라우저 권한이 필요할 수 있습니다. 서버를 사용하지 않으므로 앱이 닫힌 동안의 알림은 제공되지 않을 수 있어요.</div></section>
       <section class="card"><h2>백업과 복원</h2><p class="muted">모든 기록은 이 기기에 저장돼요. 기기 간 자동 동기화는 하지 않습니다.</p><div class="button-row"><button class="button" data-action="export-backup" type="button">전체 백업 내려받기</button><button class="button-secondary" data-action="choose-import" type="button">백업 파일 복원</button><button class="button-secondary" data-action="export-csv" type="button">CSV 내보내기</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><p class="muted" style="margin:12px 0 0">마지막 외부 백업: ${state.settings.lastExternalBackup ? fmtDate(dateKey(new Date(state.settings.lastExternalBackup))) : '기록 없음'}</p></section>
       <section class="card"><h2>홈 화면에 설치</h2><p class="muted">Safari의 공유 메뉴에서 ‘홈 화면에 추가’를 선택하면 앱처럼 실행할 수 있습니다. 오프라인 기능은 앱을 한 번 연 뒤 사용할 수 있도록 준비됩니다.</p><div class="install-hint">홈 화면 추가 안내 · Safari에서 공유 버튼을 누른 뒤 <strong>홈 화면에 추가</strong>를 선택하세요.</div></section>
@@ -463,6 +478,7 @@
     else if (action === 'month-prev' || action === 'month-next') { const d = fromKey(selectedDate); d.setMonth(d.getMonth() + (action === 'month-prev' ? -1 : 1)); selectedDate = dateKey(new Date(d.getFullYear(), d.getMonth(), 1, 12)); render(); }
     else if (action === 'select-date') { selectedDate = date; render(); }
     else if (action === 'chart-mode') { chartMode = button.dataset.mode; render(); }
+    else if (action === 'choose-skin') { state.settings.colorSkin = button.dataset.skin; applySkin(); save(); render(); showToast(`${COLOR_SKINS.find(skin => skin.id === state.settings.colorSkin)?.name || '초록'} 스킨을 적용했어요.`); }
     else if (action === 'chart-week') { const start = startOfWeek(date); selectedDate = start; weekOffset = Math.round(dayDiff(startOfWeek(today()), start) / 7); chartMode = 'summary'; render(); }
     else if (action === 'close-modal') closeModal();
     else if (action === 'onboard-skip' || action === 'onboard-next') finishOnboarding(false);
@@ -522,6 +538,7 @@
   window.addEventListener('offline', () => showToast('오프라인 상태예요. 저장된 기능을 계속 사용할 수 있어요.'));
 
   loadState().then(() => {
+    applySkin();
     ensureRange(today(), today());
     render();
     setInterval(checkReminder, 15000);
