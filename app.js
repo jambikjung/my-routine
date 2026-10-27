@@ -308,6 +308,11 @@
     const title = existing ? '할 일 수정' : '새 할 일';
     openModal(`<form id="taskForm"><p class="eyebrow">개인 할 일</p><h2>${title}</h2><div class="field"><label for="taskName">할 일 이름</label><input id="taskName" name="name" required maxlength="100" value="${esc(existing?.name || '')}" placeholder="예: 책 10쪽 읽기"></div><div class="field"><label for="taskDate">날짜</label><input id="taskDate" name="date" type="date" required value="${esc(existing?.date || defaultDate)}"></div>${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}${modalFooter(existing ? '수정 저장' : '추가')}</form>`, () => $('#taskName', modal)?.focus());
   }
+  function addChoiceDialog() {
+    openModal(`<p class="eyebrow">오늘의 할 일</p><h2>무엇을 추가할까요?</h2><p class="intro">한 번만 할 일이나 반복해서 지킬 일과를 선택하세요.</p>
+      <div class="add-choices"><button class="add-choice" data-action="choose-task-add" type="button"><strong>개인 할 일</strong><span>날짜를 정해 한 번 등록해요.</span></button><button class="add-choice" data-action="choose-routine-add" type="button"><strong>반복 일과</strong><span>매일 또는 원하는 요일에 반복해요.</span></button></div>
+      <div class="modal-footer"><button class="button-secondary" type="button" data-action="close-modal">취소</button></div>`);
+  }
   function routineForm(existing = null) {
     const rule = existing?.rule || { type: 'daily', every: 1, weekdays: [1,2,3,4,5,6,0] };
     const selected = rule.type === 'weekly' ? rule.weekdays || [] : [];
@@ -451,7 +456,9 @@
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-action]'); if (!button) return;
     const { action, id, date } = button.dataset;
-    if (action === 'add-task') taskForm(null, today());
+    if (action === 'add-task') addChoiceDialog();
+    else if (action === 'choose-task-add') taskForm(null, today());
+    else if (action === 'choose-routine-add') routineForm();
     else if (action === 'add-routine') routineForm();
     else if (action === 'edit-routine') routineForm(state.routines.find(r => r.id === id));
     else if (action === 'delete-routine') deleteRoutineDialog(id);
