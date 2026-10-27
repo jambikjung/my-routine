@@ -139,6 +139,11 @@ input:not([type="checkbox"]):not([type="radio"]), select { min-height: 45px; bor
 .modal-content h2 { font-size: 22px; }
 .modal-content .intro { color: var(--muted); line-height: 1.55; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; flex-wrap: wrap; }
+.add-choices { display: grid; gap: 10px; margin-top: 18px; }
+.add-choice { display: grid; gap: 5px; width: 100%; padding: 15px 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-2); color: var(--text); text-align: left; cursor: pointer; }
+.add-choice:hover { border-color: var(--green); }
+.add-choice strong { font-size: 15px; }
+.add-choice span { color: var(--muted); font-size: 13px; }
 .inline-note { padding: 12px 14px; background: var(--surface-2); border-radius: 13px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .empty-chart { color: var(--muted); padding: 45px 10px; text-align: center; }
 .tab-strip { display: flex; gap: 7px; background: var(--surface-2); padding: 5px; border-radius: 14px; margin-bottom: 14px; }
