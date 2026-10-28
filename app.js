@@ -177,6 +177,8 @@
     const key = today(); selectedDate = key;
     const rows = entriesFor(key);
     const undone = rows.filter(e => !e.done), done = rows.filter(e => e.done);
+    const recurring = state.routines.filter(r => !r.retiredOn || r.retiredOn > today());
+    const streakHtml = recurring.length ? `<section class="card"><h2>연속 달성 기록</h2>${recurring.map(r => `<div class="streak-line"><span>🌱</span><span>${esc(r.name)}</span><span>· ${routineStreak(r)}일</span></div>`).join('')}</section>` : '';
     const countLabel = `<div class="progress-summary"><strong>완료 ${done.length}개 / 전체 ${rows.length}개</strong><span>${rows.length ? `${done.length}개 완료` : '오늘의 기록'}</span></div>`;
     const rowHtml = e => `<div class="task-row ${e.done ? 'done' : ''}" draggable="true" data-entry="${esc(e.id)}">
       <span class="drag-handle" title="끌어서 순서 변경" aria-label="순서 변경">⠿</span>
@@ -191,6 +193,7 @@
       </div>${done.length ? `<p class="task-section-label">완료한 일 ${done.length}</p><div class="task-list" data-group="done">${done.map(rowHtml).join('')}</div>` : ''}
       ${undone.length === 0 ? `<div class="card" style="margin-top:18px;text-align:center;color:var(--green)"><strong>오늘의 할 일을 모두 완료했습니다! 🌱</strong></div>` : ''}`
       : `<div class="card empty-state"><div class="sprout">🌱</div><strong>오늘 예정된 할 일이 없습니다.</strong><span class="muted">작은 일부터 하나씩 시작해 보세요.</span><div style="margin-top:15px"><button class="button" data-action="add-task" type="button">할 일 추가</button></div></div>`}
+      ${streakHtml}
       <button class="add-fab" data-action="add-task" type="button" aria-label="할 일 추가">+</button>`;
     if (!state.onboardingDone) setTimeout(showOnboarding, 0);
   }
@@ -199,8 +202,10 @@
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }
   function weeklyStats(keys) {
-    ensureRange(keys[0], keys[6]);
-    const entries = state.entries.filter(e => e.date >= keys[0] && e.date <= keys[6]);
+    const currentDate = today();
+    const endKey = keys[0] <= currentDate && currentDate <= keys[6] ? currentDate : keys[6];
+    ensureRange(keys[0], endKey);
+    const entries = state.entries.filter(e => e.date >= keys[0] && e.date <= endKey);
     const done = entries.filter(e => e.done).length;
     return { entries, done, total: entries.length, missed: entries.length - done, rate: entries.length ? Math.round(done / entries.length * 100) : null };
   }
