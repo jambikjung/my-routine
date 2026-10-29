@@ -185,7 +185,7 @@
       <input class="task-check" type="checkbox" data-action="toggle-entry" data-id="${esc(e.id)}" ${e.done ? 'checked' : ''} aria-label="${esc(e.name)} 완료">
       <span class="task-name">${esc(e.name)}</span><span class="task-kind">${e.kind === 'routine' ? '반복 일과' : '개인 할 일'}</span>
       <button class="order-button" data-action="move-entry" data-id="${esc(e.id)}" data-direction="-1" type="button" aria-label="위로 이동">↑</button><button class="order-button" data-action="move-entry" data-id="${esc(e.id)}" data-direction="1" type="button" aria-label="아래로 이동">↓</button>
-      <button class="small-button" data-action="edit-entry" data-id="${esc(e.id)}" type="button" aria-label="${esc(e.name)} 수정">수정</button>
+      <button class="small-button" data-action="${e.kind === 'routine' ? 'edit-routine' : 'edit-entry'}" data-id="${esc(e.kind === 'routine' ? e.routineId : e.id)}" type="button" aria-label="${esc(e.name)} 수정">수정</button>
     </div>`;
     main.innerHTML = `${backupBanner()}<div class="page-heading"><div><p class="eyebrow">오늘의 성장</p><h1>오늘의 할 일</h1><p class="date-label">${fmtDate(key)}</p></div></div>
       ${countLabel}
@@ -383,7 +383,7 @@
     if (id) {
       const r = state.routines.find(item => item.id === id); if (!r) return;
       r.name = name; r.rule = rule; r.startDate = startDate; r.endDate = endDate || null; r.restWeekdays = formData.getAll('restWeekdays').map(Number); r.updatedAt = new Date().toISOString();
-      state.entries.filter(e => e.kind === 'routine' && e.routineId === id && e.date >= today()).forEach(e => state.entries.splice(state.entries.indexOf(e), 1));
+      state.entries = state.entries.filter(e => e.kind !== 'routine' || e.routineId !== id || e.date < today() || e.done);
     } else state.routines.push({ id: uid(), name, rule, startDate, endDate: endDate || null, restWeekdays: formData.getAll('restWeekdays').map(Number), exceptions: [], active: true, order: state.routines.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     save(); closeModal(); render(); showToast(id ? '일과를 수정했어요.' : '반복 일과를 추가했어요.');
   }
