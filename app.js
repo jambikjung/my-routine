@@ -108,7 +108,6 @@
     if (routine.retiredOn && key >= routine.retiredOn) return false;
     if ((routine.exceptions || []).includes(key)) return false;
     const day = fromKey(key).getDay();
-    if ((routine.restWeekdays || []).includes(day)) return false;
     const start = routine.startDate || key;
     const diff = dayDiff(start, key);
     if (diff < 0) return false;
@@ -281,7 +280,7 @@
     const live = state.routines.filter(r => !r.retiredOn || r.retiredOn > today());
     const archived = state.routines.filter(r => r.retiredOn && r.retiredOn <= today());
     main.innerHTML = `<div class="page-heading"><div><p class="eyebrow">나에게 맞게 정리해요</p><h1>관리</h1><p class="date-label">반복 일과와 개인 할 일 템플릿</p></div><button class="button" data-action="add-task" type="button">할 일 추가</button></div>
-      <section class="card"><div class="section-head" style="margin-top:0"><h2>반복 일과</h2><span class="muted">${live.length}개</span></div>${live.length ? live.map(r => `<div class="routine-card"><div><strong>${esc(r.name)}</strong><p>${esc(describeRule(r))} · ${r.active === false ? '중단됨' : '진행 중'}</p></div><div class="routine-actions"><button class="small-button" data-action="edit-routine" data-id="${esc(r.id)}" type="button">수정</button><button class="small-button" data-action="skip-date" data-id="${esc(r.id)}" type="button">쉬는 날</button><button class="small-button" data-action="delete-routine" data-id="${esc(r.id)}" type="button">삭제</button></div></div>`).join('') : `<p class="muted">아직 반복 일과가 없어요. 일과를 추가해 시작해 보세요.</p>`}${archived.length ? `<details style="margin-top:14px"><summary class="muted">중단한 일과 ${archived.length}개</summary>${archived.map(r => `<div class="routine-card"><div><strong>${esc(r.name)}</strong><p>중단됨</p></div><button class="small-button" data-action="resume-routine" data-id="${esc(r.id)}" type="button">다시 시작</button></div>`).join('')}</details>` : ''}</section>
+      <section class="card"><div class="section-head" style="margin-top:0"><h2>반복 일과</h2><span class="muted">${live.length}개</span></div>${live.length ? live.map(r => `<div class="routine-card"><div><strong>${esc(r.name)}</strong><p>${esc(describeRule(r))} · ${r.active === false ? '중단됨' : '진행 중'}</p></div><div class="routine-actions"><button class="small-button" data-action="edit-routine" data-id="${esc(r.id)}" type="button">수정</button><button class="small-button" data-action="delete-routine" data-id="${esc(r.id)}" type="button">삭제</button></div></div>`).join('') : `<p class="muted">아직 반복 일과가 없어요. 일과를 추가해 시작해 보세요.</p>`}${archived.length ? `<details style="margin-top:14px"><summary class="muted">중단한 일과 ${archived.length}개</summary>${archived.map(r => `<div class="routine-card"><div><strong>${esc(r.name)}</strong><p>중단됨</p></div><button class="small-button" data-action="resume-routine" data-id="${esc(r.id)}" type="button">다시 시작</button></div>`).join('')}</details>` : ''}</section>
       <section class="card"><div class="section-head" style="margin-top:0"><h2>개인 할 일 템플릿</h2><button class="small-button" data-action="add-template" type="button">템플릿 추가</button></div>${state.templates.length ? state.templates.map(t => `<div class="routine-card"><div><strong>${esc(t.name)}</strong><p>필요할 때 새 할 일로 추가</p></div><div class="routine-actions"><button class="small-button" data-action="use-template" data-id="${esc(t.id)}" type="button">오늘 추가</button><button class="small-button" data-action="delete-template" data-id="${esc(t.id)}" type="button">삭제</button></div></div>`).join('') : '<p class="muted">자주 쓰는 할 일을 템플릿으로 저장할 수 있어요.</p>'}</section>
       <section class="card"><h2>최근 개인 할 일</h2>${state.entries.filter(e => e.kind === 'task').sort((a,b) => b.date.localeCompare(a.date)).slice(0,8).map(e => `<div class="routine-card"><div><strong>${esc(e.name)}</strong><p>${fmtDate(e.date)} · ${e.done ? '완료' : '미완료'}</p></div><div class="routine-actions"><button class="small-button" data-action="edit-entry" data-id="${esc(e.id)}" type="button">수정</button><button class="small-button" data-action="remove-entry" data-id="${esc(e.id)}" type="button">삭제</button></div></div>`).join('') || '<p class="muted">등록된 개인 할 일이 없어요.</p>'}</section>`;
   }
@@ -346,7 +345,6 @@
       <div class="field"><label for="routineName">이름</label><input id="routineName" name="name" required maxlength="100" value="${esc(existing?.name || '')}" placeholder="예: 아침 스트레칭"></div>
       <div class="form-grid"><div class="field"><label for="ruleType">반복 주기</label><select id="ruleType" name="type"><option value="daily" ${rule.type === 'daily' ? 'selected' : ''}>매일</option><option value="weekly" ${rule.type === 'weekly' ? 'selected' : ''}>매주 요일 선택</option><option value="weeks" ${rule.type === 'weeks' ? 'selected' : ''}>몇 주마다</option><option value="days" ${rule.type === 'days' ? 'selected' : ''}>몇 일마다</option><option value="monthly" ${rule.type === 'monthly' ? 'selected' : ''}>매월</option></select></div><div class="field" id="everyField"><label for="every">간격</label><input id="every" name="every" type="number" min="1" max="365" value="${esc(rule.every || 1)}"></div>
       <div class="field full" id="weekdayField" ${rule.type === 'weekly' ? '' : 'hidden'}><span class="field-label">반복할 요일</span>${dayChecks('weekdays', selected)}</div>
-      <div class="field full"><span class="field-label">쉬는 요일 (선택)</span>${dayChecks('restWeekdays', existing?.restWeekdays || [])}</div>
       <div class="field"><label for="startDate">시작일</label><input id="startDate" name="startDate" type="date" required value="${esc(existing?.startDate || today())}"></div><div class="field"><label for="endDate">종료일 (선택)</label><input id="endDate" name="endDate" type="date" value="${esc(existing?.endDate || '')}"></div></div>
       ${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}<p class="form-error" id="routineFormError" role="alert" hidden></p><div class="inline-note">주간 반복은 선택한 요일에만 등록돼요. 격주·매월 반복은 시작일을 기준으로 계산합니다.</div>${modalFooter(existing ? '수정 저장' : '일과 추가')}</form>`, () => {
         $('#routineName', modal)?.focus();
@@ -363,11 +361,7 @@
   }
   function deleteRoutineDialog(id) {
     const routine = state.routines.find(r => r.id === id); if (!routine) return;
-    openModal(`<p class="eyebrow">일과 삭제</p><h2>${esc(routine.name)}</h2><p class="intro">오늘 이후의 반복을 중단합니다. 과거 기록은 어떻게 할까요?</p><div class="modal-footer" style="justify-content:stretch"><button class="button-secondary" data-action="confirm-delete-routine" data-id="${esc(id)}" data-history="keep" type="button">과거 기록 보존</button><button class="button-danger" data-action="confirm-delete-routine" data-id="${esc(id)}" data-history="erase" type="button">과거 기록도 삭제</button></div>`);
-  }
-  function skipDateDialog(id) {
-    const routine = state.routines.find(r => r.id === id); if (!routine) return;
-    openModal(`<form id="skipForm"><p class="eyebrow">쉬는 날</p><h2>${esc(routine.name)}</h2><p class="intro">이 반복 일과를 쉬는 요일이나 특정 날짜를 설정합니다.</p><div class="field"><span class="field-label">매주 쉬는 요일</span>${dayChecks('restWeekdays', routine.restWeekdays || [])}</div><div class="field"><label for="skipDate">한 번만 쉬는 날짜 추가</label><input id="skipDate" name="date" type="date" value="${today()}"></div><p class="muted">이미 추가한 날짜: ${(routine.exceptions || []).map(d => `<button class="small-button" data-action="remove-skip" data-id="${esc(id)}" data-date="${esc(d)}" type="button">${fmtDate(d)} ×</button>`).join(' ') || '없음'}</p><input type="hidden" name="id" value="${esc(id)}">${modalFooter('저장')}</form>`);
+    openModal(`<p class="eyebrow">일과 삭제</p><h2>${esc(routine.name)}</h2><p class="intro">오늘 이후의 반복을 중단합니다. 과거 기록은 어떻게 할까요?</p><div class="modal-footer" style="justify-content:stretch"><button class="button-secondary" data-action="close-modal" type="button">취소</button><button class="button-secondary" data-action="confirm-delete-routine" data-id="${esc(id)}" data-history="keep" type="button">과거 기록 보존</button><button class="button-danger" data-action="confirm-delete-routine" data-id="${esc(id)}" data-history="erase" type="button">과거 기록도 삭제</button></div>`);
   }
   function editEntry(id) { const e = getEntry(id); if (e) taskForm(e, e.date); }
 
@@ -415,9 +409,9 @@
     if (id) {
       const r = state.routines.find(item => item.id === id);
       if (!r) { showRoutineFormError('수정할 일과를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
-      r.name = name; r.rule = rule; r.startDate = startDate; r.endDate = endDate || null; r.restWeekdays = formData.getAll('restWeekdays').map(Number); r.updatedAt = new Date().toISOString();
+      r.name = name; r.rule = rule; r.startDate = startDate; r.endDate = endDate || null; r.updatedAt = new Date().toISOString();
       state.entries = state.entries.filter(e => e.kind !== 'routine' || e.routineId !== id || e.date < today() || e.done);
-    } else state.routines.push({ id: uid(), name, rule, startDate, endDate: endDate || null, restWeekdays: formData.getAll('restWeekdays').map(Number), exceptions: [], active: true, order: state.routines.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    } else state.routines.push({ id: uid(), name, rule, startDate, endDate: endDate || null, exceptions: [], active: true, order: state.routines.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     save(); closeModal(); render(); showToast(id ? '일과를 수정했어요.' : '반복 일과를 추가했어요.');
   }
 
@@ -500,7 +494,6 @@
     else if (action === 'add-routine') routineForm();
     else if (action === 'edit-routine') routineForm(state.routines.find(r => r.id === id));
     else if (action === 'delete-routine') deleteRoutineDialog(id);
-    else if (action === 'skip-date') skipDateDialog(id);
     else if (action === 'resume-routine') { const r = state.routines.find(x => x.id === id); r.retiredOn = null; r.startDate = today(); r.active = true; save(); render(); showToast('오늘부터 다시 시작해요.'); }
     else if (action === 'toggle-entry') { /* input change is handled below */ }
     else if (action === 'edit-entry') editEntry(id);
@@ -516,7 +509,6 @@
       state.entries = state.entries.filter(e => e.routineId !== id || e.date < today() && button.dataset.history === 'keep');
       save(); closeModal(); render(); showToast(button.dataset.history === 'keep' ? '과거 기록을 보존하고 일과를 중단했어요.' : '일과와 과거 기록을 삭제했어요.');
     }
-    else if (action === 'remove-skip') { const r = state.routines.find(x => x.id === id); r.exceptions = (r.exceptions || []).filter(d => d !== date); save(); skipDateDialog(id); }
     else if (action === 'go-backup') { currentView = 'settings'; render(); }
     else if (action === 'week-prev') { weekOffset--; render(); }
     else if (action === 'week-next') { weekOffset++; render(); }
@@ -559,7 +551,6 @@
   modal.addEventListener('submit', event => {
     event.preventDefault(); const form = event.target, fd = new FormData(form);
     if (form.id === 'templateForm') { state.templates.push({ id: uid(), name: String(fd.get('name')).trim(), createdAt: new Date().toISOString() }); save(); closeModal(); render(); }
-    else if (form.id === 'skipForm') { const r = state.routines.find(x => x.id === fd.get('id')); if (r) { r.restWeekdays = fd.getAll('restWeekdays').map(Number); const skip = String(fd.get('date') || ''); if (skip && !(r.exceptions || []).includes(skip)) r.exceptions = [...(r.exceptions || []), skip]; save(); closeModal(); render(); showToast('쉬는 날을 저장했어요.'); } }
   });
   document.addEventListener('change', event => {
     if (event.target.id === 'summaryEnabled') { state.settings.summaryEnabled = event.target.checked; enableSummary(); }
