@@ -184,3 +184,5 @@ input:not([type="checkbox"]):not([type="radio"]), select { min-height: 45px; bor
   .field.full { grid-column: auto; }
   .task-kind { display: none; }
 }
+
+.form-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--amber-bg); color: var(--danger); font-size: 14px; line-height: 1.45; }
