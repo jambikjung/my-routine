@@ -1,5 +1,5 @@
-const CACHE_NAME = 'my-routine-shell-v7';
-const SHELL = ['./', './index.html', './styles.css?v=20261029-3', './app.js?v=20261029-3', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'my-routine-shell-v8';
+const SHELL = ['./', './index.html', './styles.css?v=20261029-4', './app.js?v=20261029-4', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
