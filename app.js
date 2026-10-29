@@ -327,7 +327,7 @@
       <div class="field full" id="weekdayField" ${rule.type === 'weekly' ? '' : 'hidden'}><span class="field-label">반복할 요일</span>${dayChecks('weekdays', selected)}</div>
       <div class="field full"><span class="field-label">쉬는 요일 (선택)</span>${dayChecks('restWeekdays', existing?.restWeekdays || [])}</div>
       <div class="field"><label for="startDate">시작일</label><input id="startDate" name="startDate" type="date" required value="${esc(existing?.startDate || today())}"></div><div class="field"><label for="endDate">종료일 (선택)</label><input id="endDate" name="endDate" type="date" value="${esc(existing?.endDate || '')}"></div></div>
-      ${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}<div class="inline-note">주간 반복은 선택한 요일에만 등록돼요. 격주·매월 반복은 시작일을 기준으로 계산합니다.</div>${modalFooter(existing ? '수정 저장' : '일과 추가')}</form>`, () => {
+      ${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}<p class="form-error" id="routineFormError" role="alert" hidden></p><div class="inline-note">주간 반복은 선택한 요일에만 등록돼요. 격주·매월 반복은 시작일을 기준으로 계산합니다.</div>${modalFooter(existing ? '수정 저장' : '일과 추가')}</form>`, () => {
         $('#routineName', modal)?.focus();
         $('#ruleType', modal).addEventListener('change', () => $('#weekdayField', modal).hidden = $('#ruleType', modal).value !== 'weekly');
         $('#routineForm', modal).addEventListener('submit', event => {
@@ -377,17 +377,23 @@
     group.forEach((e, i) => { e.order = i; e.updatedAt = new Date().toISOString(); });
     save(); render();
   }
+  function showRoutineFormError(message) {
+    const error = $('#routineFormError', modal);
+    if (error) { error.textContent = message; error.hidden = false; }
+    else showToast(message);
+  }
+
   function createRoutine(formData) {
     const id = formData.get('id'), name = String(formData.get('name')).trim();
     const type = formData.get('type'), every = Math.max(1, Number(formData.get('every') || 1));
     const weekdays = formData.getAll('weekdays').map(Number);
-    if (type === 'weekly' && !weekdays.length) { showToast('반복할 요일을 하나 이상 선택해 주세요.'); return; }
+    if (type === 'weekly' && !weekdays.length) { showRoutineFormError('반복할 요일을 하나 이상 선택해 주세요.'); return; }
     const startDate = String(formData.get('startDate') || today()), endDate = String(formData.get('endDate') || '');
-    if (endDate && endDate < startDate) { showToast('종료일은 시작일 이후로 선택해 주세요.'); return; }
+    if (endDate && endDate < startDate) { showRoutineFormError('종료일은 시작일 이후로 선택해 주세요.'); return; }
     const rule = { type, every, weekdays };
     if (id) {
       const r = state.routines.find(item => item.id === id);
-      if (!r) { showToast('수정할 일과를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
+      if (!r) { showRoutineFormError('수정할 일과를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
       r.name = name; r.rule = rule; r.startDate = startDate; r.endDate = endDate || null; r.restWeekdays = formData.getAll('restWeekdays').map(Number); r.updatedAt = new Date().toISOString();
       state.entries = state.entries.filter(e => e.kind !== 'routine' || e.routineId !== id || e.date < today() || e.done);
     } else state.routines.push({ id: uid(), name, rule, startDate, endDate: endDate || null, restWeekdays: formData.getAll('restWeekdays').map(Number), exceptions: [], active: true, order: state.routines.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
