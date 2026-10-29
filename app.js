@@ -330,6 +330,11 @@
       ${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}<div class="inline-note">주간 반복은 선택한 요일에만 등록돼요. 격주·매월 반복은 시작일을 기준으로 계산합니다.</div>${modalFooter(existing ? '수정 저장' : '일과 추가')}</form>`, () => {
         $('#routineName', modal)?.focus();
         $('#ruleType', modal).addEventListener('change', () => $('#weekdayField', modal).hidden = $('#ruleType', modal).value !== 'weekly');
+        $('#routineForm', modal).addEventListener('submit', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          createRoutine(new FormData(event.currentTarget));
+        });
       });
   }
   function templateForm() {
@@ -381,7 +386,8 @@
     if (endDate && endDate < startDate) { showToast('종료일은 시작일 이후로 선택해 주세요.'); return; }
     const rule = { type, every, weekdays };
     if (id) {
-      const r = state.routines.find(item => item.id === id); if (!r) return;
+      const r = state.routines.find(item => item.id === id);
+      if (!r) { showToast('수정할 일과를 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
       r.name = name; r.rule = rule; r.startDate = startDate; r.endDate = endDate || null; r.restWeekdays = formData.getAll('restWeekdays').map(Number); r.updatedAt = new Date().toISOString();
       state.entries = state.entries.filter(e => e.kind !== 'routine' || e.routineId !== id || e.date < today() || e.done);
     } else state.routines.push({ id: uid(), name, rule, startDate, endDate: endDate || null, restWeekdays: formData.getAll('restWeekdays').map(Number), exceptions: [], active: true, order: state.routines.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
@@ -529,8 +535,7 @@
       const id = fd.get('id'), name = String(fd.get('name')).trim(), date = String(fd.get('date'));
       if (id) { const e = getEntry(id); if (e) { e.name = name; e.date = date; e.updatedAt = new Date().toISOString(); save(); closeModal(); selectedDate = date; render(); showToast('기록을 수정했어요.'); } }
       else addTask(name, date);
-    } else if (form.id === 'routineForm') createRoutine(fd);
-    else if (form.id === 'templateForm') { state.templates.push({ id: uid(), name: String(fd.get('name')).trim(), createdAt: new Date().toISOString() }); save(); closeModal(); render(); }
+    } else if (form.id === 'templateForm') { state.templates.push({ id: uid(), name: String(fd.get('name')).trim(), createdAt: new Date().toISOString() }); save(); closeModal(); render(); }
     else if (form.id === 'skipForm') { const r = state.routines.find(x => x.id === fd.get('id')); if (r) { r.restWeekdays = fd.getAll('restWeekdays').map(Number); const skip = String(fd.get('date') || ''); if (skip && !(r.exceptions || []).includes(skip)) r.exceptions = [...(r.exceptions || []), skip]; save(); closeModal(); render(); showToast('쉬는 날을 저장했어요.'); } }
   });
   document.addEventListener('change', event => {
