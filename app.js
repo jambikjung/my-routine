@@ -309,9 +309,30 @@
     }
     state.onboardingDone = true; save(); closeModal(); render();
   }
+  function taskFormError(message) {
+    const error = $('#taskFormError', modal);
+    if (error) { error.textContent = message; error.hidden = false; }
+    else showToast(message);
+  }
+
   function taskForm(existing = null, defaultDate = today()) {
     const title = existing ? '할 일 수정' : '새 할 일';
-    openModal(`<form id="taskForm"><p class="eyebrow">개인 할 일</p><h2>${title}</h2><div class="field"><label for="taskName">할 일 이름</label><input id="taskName" name="name" required maxlength="100" value="${esc(existing?.name || '')}" placeholder="예: 책 10쪽 읽기"></div><div class="field"><label for="taskDate">날짜</label><input id="taskDate" name="date" type="date" required value="${esc(existing?.date || defaultDate)}"></div>${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}${modalFooter(existing ? '수정 저장' : '추가')}</form>`, () => $('#taskName', modal)?.focus());
+    openModal(`<form id="taskForm"><p class="eyebrow">개인 할 일</p><h2>${title}</h2><div class="field"><label for="taskName">할 일 이름</label><input id="taskName" name="name" required maxlength="100" value="${esc(existing?.name || '')}" placeholder="예: 책 10쪽 읽기"></div><div class="field"><label for="taskDate">날짜</label><input id="taskDate" name="date" type="date" required value="${esc(existing?.date || defaultDate)}"></div>${existing ? `<input type="hidden" name="id" value="${esc(existing.id)}">` : ''}<p class="form-error" id="taskFormError" role="alert" hidden></p>${modalFooter(existing ? '수정 저장' : '추가')}</form>`, () => {
+      $('#taskName', modal)?.focus();
+      $('#taskForm', modal).addEventListener('submit', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const fd = new FormData(event.currentTarget);
+        const id = fd.get('id'), name = String(fd.get('name') || '').trim(), date = String(fd.get('date') || '');
+        if (!name || !date) { taskFormError('할 일 이름과 날짜를 입력해 주세요.'); return; }
+        if (id) {
+          const entry = getEntry(id);
+          if (!entry || entry.kind !== 'task') { taskFormError('수정할 개인 할 일을 찾지 못했어요. 화면을 새로고침해 주세요.'); return; }
+          entry.name = name; entry.date = date; entry.updatedAt = new Date().toISOString();
+          save(); closeModal(); selectedDate = date; render(); showToast('개인 할 일을 수정했어요.');
+        } else addTask(name, date);
+      });
+    });
   }
   function addChoiceDialog() {
     openModal(`<p class="eyebrow">오늘의 할 일</p><h2>무엇을 추가할까요?</h2><p class="intro">한 번만 할 일이나 반복해서 지킬 일과를 선택하세요.</p>
@@ -537,11 +558,7 @@
   });
   modal.addEventListener('submit', event => {
     event.preventDefault(); const form = event.target, fd = new FormData(form);
-    if (form.id === 'taskForm') {
-      const id = fd.get('id'), name = String(fd.get('name')).trim(), date = String(fd.get('date'));
-      if (id) { const e = getEntry(id); if (e) { e.name = name; e.date = date; e.updatedAt = new Date().toISOString(); save(); closeModal(); selectedDate = date; render(); showToast('기록을 수정했어요.'); } }
-      else addTask(name, date);
-    } else if (form.id === 'templateForm') { state.templates.push({ id: uid(), name: String(fd.get('name')).trim(), createdAt: new Date().toISOString() }); save(); closeModal(); render(); }
+    if (form.id === 'templateForm') { state.templates.push({ id: uid(), name: String(fd.get('name')).trim(), createdAt: new Date().toISOString() }); save(); closeModal(); render(); }
     else if (form.id === 'skipForm') { const r = state.routines.find(x => x.id === fd.get('id')); if (r) { r.restWeekdays = fd.getAll('restWeekdays').map(Number); const skip = String(fd.get('date') || ''); if (skip && !(r.exceptions || []).includes(skip)) r.exceptions = [...(r.exceptions || []), skip]; save(); closeModal(); render(); showToast('쉬는 날을 저장했어요.'); } }
   });
   document.addEventListener('change', event => {
